@@ -10,14 +10,18 @@ def compute_metrics(classifier, x_test, y_test, model_name):
     pred_path = os.path.join(path, f'y_pred_{model_name}.csv')
     metric_path = os.path.join(path, f'metrics_{model_name}.csv')
 
-    y_pred = classifier.predict(x_test) 
-    y_pred_dict = {'Prediction' : y_pred} 
-    dataframe = pd.DataFrame(y_pred_dict) 
-    dataframe.index += 1 
-    dataframe.to_csv(pred_path,index_label='Id') 
+    if os.path.isfile(pred_path):
+        print("Existing file {pred_path}, skipping evaluation")
+        y_pred = pd.read_csv(pred_path)["Prediction"].to_numpy()
+    else:
+        y_pred = classifier.predict(x_test) 
+        y_pred_dict = {'Prediction' : y_pred} 
+        dataframe = pd.DataFrame(y_pred_dict) 
+        dataframe.index += 1 
+        dataframe.to_csv(pred_path,index_label='Id') 
     result_metrics = {
                'precision': lambda yt, yp: metrics.precision_score(yt, yp, average=None), 
-               'recall': lambda yt, yp: metrics.precision_score(yt, yp, average=None), 
+               'recall': lambda yt, yp: metrics.recall_score(yt, yp, average=None), 
                'f1': lambda yt, yp: metrics.f1_score(yt, yp, average=None), 
                'accuracy': lambda yt, yp: metrics.accuracy_score(yt, yp)
                }

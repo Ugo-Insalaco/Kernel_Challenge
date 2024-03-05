@@ -33,8 +33,12 @@ class ImageViewer():
             self.win = None
 
     def update_image(self):
-        img = Image.fromarray(np.uint8(self.images[self.index]*255))
-        img = img.resize((self.width,self.height), resample = Image.BILINEAR)
+        img = 0.5*(self.images[self.index]+1)
+        h, w = 32, 32
+        img = np.reshape(img, (3, h, w))
+        img = np.moveaxis(img, 0, 2) # N x h x w x 3
+        img = Image.fromarray(np.uint8(img*255))
+        img = img.resize((self.width,self.height), resample = Image.NEAREST)
         img = ImageTk.PhotoImage(img)
         self.img['image'] = None
         self.img.img = None

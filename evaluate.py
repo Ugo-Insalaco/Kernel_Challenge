@@ -1,7 +1,7 @@
 from sklearn import metrics
 from data import load_data
 from multiclass_svc import MultiClassSVC
-from kernels import Linear, RBF
+from kernels import Linear, RBF, HistogramKernel
 import pandas as pd
 import os
 
@@ -30,11 +30,22 @@ def compute_metrics(classifier, x_test, y_test, model_name):
             f.write("%s,%s\n"%(key,result_metrics[key]))
 
 if __name__ == '__main__':
-    x_train, y_train, x_test, y_test = load_data(test_size = 0.15)
-
+    test_size = 0.1
+    x_train, y_train, x_test, y_test = load_data(test_size = test_size)
+    kernel_kwargs = {
+        "HistogramKernel": {
+            "mu": 50,
+            "lambd": 1
+        },
+        "RBF":{
+            "sigma": 4
+        },
+        "Linear": {}
+    }
+    kernel_name = "HistogramKernel+RBF"
+    classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-5, cache_prefix=f"s{test_size}")
     # classifier = MultiClassSVC(10, 100, Linear().kernel, epsilon = 1e-10)
-    classifier = MultiClassSVC(10, 1e1, RBF(sigma=25).kernel, 'ovo', epsilon = 1e-16)
-    # classifier.load('models/multiclass_svc_linear.npz', x_train, y_train)
-    classifier.load('models/multiclass_svc_RBF.npz', x_train, y_train)
+    # classifier = MultiClassSVC(10, 1e1, RBF(sigma=4).kernel, 'ovo', epsilon = 1e-16)
+    classifier.load('models/multiclass_svc_hist+rbf.npz', x_train, y_train)
     
-    compute_metrics(classifier, x_test, y_test, 'multiclass_svc_rbf')
+    compute_metrics(classifier, x_test, y_test, 'multiclass_svc_hist+rbf')

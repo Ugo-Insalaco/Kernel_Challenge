@@ -1,23 +1,41 @@
 from svc import KernelSVC
 from data import load_data
-from kernels import Linear, RBF
+from kernels import SumKernel, kernels_dict
 import numpy as np
 import tqdm
-from utils import tri_to_list_index, list_to_tri_index
+import os
+from utils import tri_to_list_index, list_to_tri_index, dict_to_filename
 
 class MultiClassSVC():
-    def __init__(self,nclasses, C, kernel , mode='ovo', epsilon=0.01):
-        self.nclasses = nclasses
+    def __init__(self,nclasses, C, kernel_name, kernel_kwargs, mode='ovo', epsilon=0.01, weights = None, cache_folder="kernels", cache_prefix=""):
+        # Checking mode config
         if mode not in ["ovo", "ovr"]:
             raise ValueError(f"Invalid mode {mode}")
         self._mode = mode
-        if self._mode == "ovr":
-            self.svcs = [KernelSVC(C, kernel, epsilon=epsilon) for _ in range(nclasses)] # SVC i classifies i against all others
-        elif self._mode == "ovo":
-            self.svcs = [KernelSVC(C, kernel, epsilon=epsilon) for _ in range(round(nclasses * (nclasses-1)/2))]
-        self._mode = mode
 
-    def split_ovo(self, Xtr, ytr, i, j):
+        # Computing number of required kernels
+        self.nclasses = nclasses
+        if self._mode == "ovr":
+            nkernels = nclasses
+        elif self._mode == "ovo":
+            nkernels = round(nclasses * (nclasses-1)/2)
+
+        # Instanciating the kernels
+        kernel_names = kernel_name.split("+")
+        cache_files = [{name: os.path.join(cache_folder, f"{name}_{cache_prefix}_{dict_to_filename(kernel_kwargs[name])}_{self._mode}_{k}.npy") for name in kernel_names} for k in range(nkernels)]
+        kernels_instances = [[kernels_dict[name](**kernel_kwargs[name], cache_file=cache_files[k][name]) for name in kernel_names] for k in range(nkernels)]
+        
+        # Sum kernels
+        if len(kernel_names) > 1:
+            kernel = [SumKernel(kernels_instances[i], weights) for i in range(nkernels)]
+        else: 
+            kernel = [kernels_instances[i][0] for i in range(nkernels)]
+
+        # Instanciating SVC models
+        self.svcs = [KernelSVC(C, k, epsilon=epsilon) for k in kernel]
+
+    @staticmethod
+    def split_ovo(Xtr, ytr, i, j):
         new_data = Xtr[(ytr==i) | (ytr==j)]
         new_target = ytr[(ytr==i) | (ytr==j)]
         new_target[new_target == i] = 1 # i is 1
@@ -77,7 +95,12 @@ class MultiClassSVC():
     def predict(self, X):
         # X: n x d
         n = X.shape[0]
-        ds = np.array([svc.separating_function(X) + svc.b for svc in self.svcs]) # nclasses x n (ovr) / nclasses*(nclasses-1)/2 x n (ovo)
+        ds = []
+        for k in range(len(self.svcs)):
+            print(f"Predicting for classifier {k}")
+            ds.append(self.svcs[k].separating_function(X) + self.svcs[k].b)
+        ds = np.array(ds)
+        # ds = np.array([svc.separating_function(X) + svc.b for svc in self.svcs]) # nclasses x n (ovr) / nclasses*(nclasses-1)/2 x n (ovo)
         if self._mode == "ovr":
             ypred = np.argmax(ds, axis = 0) # n
         elif self._mode == "ovo":
@@ -94,8 +117,22 @@ class MultiClassSVC():
         return ypred
 
 if __name__ == '__main__':
-    x_train, y_train, x_test, y_test = load_data(test_size = 0.15)
-    classifier = MultiClassSVC(10, 1e1, RBF(sigma=25).kernel, 'ovo', epsilon = 1e-16)
+    test_size = 0.1
+    x_train, y_train, x_test, y_test = load_data(test_size = test_size)
+    # kernel = RBF(sigma=4).kernel
+    kernel_kwargs = {
+        "HistogramKernel": {
+            "mu": 50,
+            "lambd": 1
+        },
+        "RBF":{
+            "sigma": 4
+        },
+        "Linear": {}
+    }
+    kernel_name = "RBF"
+    # kernel = kernels_dict[kernel_name](kernel_kwargs[kernel_name]).kernel
+    classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-5, cache_prefix=f"s{test_size}")
     # classifier = MultiClassSVC(10, 25, Linear().kernel, 'ovo', epsilon = 1e-10) # test_size=0.15
     classifier.fit(x_train,y_train)
-    classifier.save('models/multiclass_svc_RBF')
+    classifier.save('models/multiclass_svc_rbf')

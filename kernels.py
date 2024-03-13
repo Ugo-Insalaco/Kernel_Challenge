@@ -46,7 +46,7 @@ class RBF(CacheKernel):
         return K
 
 class Linear(CacheKernel):
-    def __call__(self,X,Y, use_cache=True):
+    def __call__(self,X,Y, use_cache=False):
         K = super().__call__(use_cache)
         if K is not None:
             return K

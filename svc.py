@@ -41,7 +41,7 @@ class KernelSVC:
             print("warning: empty support")
             self.b = 0
         else:
-            print(f"found {len(self.support)} supports")
+            print(f"found {len(self.support)}/{len(self.alpha)} supports")
             fsupp = self.separating_function(self.support)
             ysupp= y[condsupp]
             self.b = ((1/ysupp-fsupp)).mean() #''' 0]-----------------offset of the classifier------------------ ''' # k(N x d, 1 x d) = N x 1

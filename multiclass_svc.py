@@ -57,7 +57,7 @@ class MultiClassSVC():
         elif self._mode == "ovo":
             for i in range(self.nclasses):
                 for j in range(i+1, self.nclasses):
-                    print(f"==== Fitting Class {i} against {j} ====")
+                    print(f"==== Fitting Class {i+1} against {j+1} ====")
                     new_data, new_target = self.split_ovo(X, y, i, j)
                     k = tri_to_list_index(i, j, self.nclasses)
                     self.svcs[k].fit(new_data, new_target)
@@ -118,7 +118,7 @@ class MultiClassSVC():
 
 if __name__ == '__main__':
     test_size = 0.1
-    x_train, y_train, x_test, y_test = load_data(test_size = test_size)
+    x_train, y_train, x_test, y_test = load_data(test_size = test_size, use_fisher_vectors=True)
     # kernel = RBF(sigma=4).kernel
     kernel_kwargs = {
         "HistogramKernel": {
@@ -130,9 +130,15 @@ if __name__ == '__main__':
         },
         "Linear": {}
     }
-    kernel_name = "RBF"
+    # kernel_name = "RBF"
     # kernel = kernels_dict[kernel_name](kernel_kwargs[kernel_name]).kernel
-    classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-5, cache_prefix=f"s{test_size}")
+    # classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-5, cache_prefix=f"s{test_size}")
     # classifier = MultiClassSVC(10, 25, Linear().kernel, 'ovo', epsilon = 1e-10) # test_size=0.15
+    # classifier.fit(x_train,y_train)
+    # classifier.save('models/multiclass_svc_rbf')
+
+    kernel_name = "Linear"
+    kernel = kernels_dict[kernel_name](kernel_kwargs[kernel_name])
+    classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-2, cache_prefix=f"fisher_s{test_size}")
     classifier.fit(x_train,y_train)
-    classifier.save('models/multiclass_svc_rbf')
+    classifier.save('models/multiclass_svc_fisher')

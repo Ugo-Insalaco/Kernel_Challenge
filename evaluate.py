@@ -11,7 +11,7 @@ def compute_metrics(classifier, x_test, y_test, model_name):
     metric_path = os.path.join(path, f'metrics_{model_name}.csv')
 
     if os.path.isfile(pred_path):
-        print("Existing file {pred_path}, skipping evaluation")
+        print(f"Existing file {pred_path}, skipping evaluation")
         y_pred = pd.read_csv(pred_path)["Prediction"].to_numpy()
     else:
         y_pred = classifier.predict(x_test) 
@@ -35,7 +35,7 @@ def compute_metrics(classifier, x_test, y_test, model_name):
 
 if __name__ == '__main__':
     test_size = 0.1
-    x_train, y_train, x_test, y_test = load_data(test_size = test_size)
+    x_train, y_train, x_test, y_test = load_data(test_size = test_size, use_fisher_vectors=True)
     kernel_kwargs = {
         "HistogramKernel": {
             "mu": 50,
@@ -46,10 +46,11 @@ if __name__ == '__main__':
         },
         "Linear": {}
     }
-    kernel_name = "HistogramKernel+RBF"
-    classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-5, cache_prefix=f"s{test_size}")
+    kernel_name = "Linear"
+    # classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-5, cache_prefix=f"s{test_size}")
     # classifier = MultiClassSVC(10, 100, Linear().kernel, epsilon = 1e-10)
     # classifier = MultiClassSVC(10, 1e1, RBF(sigma=4).kernel, 'ovo', epsilon = 1e-16)
-    classifier.load('models/multiclass_svc_hist+rbf.npz', x_train, y_train)
+    classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-2, cache_prefix=f"fisher_s{test_size}")
+    classifier.load('models/multiclass_svc_fisher.npz', x_train, y_train)
     
-    compute_metrics(classifier, x_test, y_test, 'multiclass_svc_hist+rbf')
+    compute_metrics(classifier, x_test, y_test, 'multiclass_svc_fisher')

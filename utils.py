@@ -3,6 +3,7 @@ from scipy import optimize
 from cvxopt import matrix, solvers
 solvers.options['show_progress'] = False
 import numpy as np
+import cv2
 
 def list_to_tri_index(k, n):
     # i < j
@@ -61,3 +62,61 @@ def solve_scipy(K, dy, C, y):
                                 jac=lambda alpha: grad_loss(alpha), 
                                 constraints=constraints)
     return optRes.x
+
+class MVN():
+    def __init__(self, mean, cov):
+        self.mean = mean
+        self.cov = cov
+        self.det_cov = np.prod(self.cov)
+        self.inv_cov = 1/(self.cov) # d
+        self.d = mean.shape[0]
+    def __call__(self, x):
+        # x: T x d
+        # return T
+        xm = x - self.mean[None, :] # T x d - 1 x d
+        dot = xm ** 2 * self.inv_cov[None, :] # T x d * 1 x d = T x d
+        dens = np.sqrt(2*np.pi*self.cov) # d
+        prod = 1/dens[None, :]*np.exp(-1/2*dot) # T x d
+
+        return np.prod(prod, axis = 1)
+    
+def compute_sifts(X):
+    sifts_features = []
+    i=0
+    for image in X:
+        i+=1
+        sift = cv2.SIFT_create(nfeatures=256, contrastThreshold  = 1e-3, edgeThreshold = 20, sigma = 0.8)
+        _, descriptors = sift.detectAndCompute(image, None) # T x d
+        descriptors=descriptors/np.sum(descriptors, axis = 1, keepdims=True)
+        sifts_features.append(descriptors)
+    return sifts_features
+
+def get_n_grey_images(x, n=0):
+    grays = []
+    if n == 0:
+        n = x.shape[0]
+        
+    for i in range(n):
+        img = x[i]*256
+        img = img.astype(np.uint8)
+        img = np.moveaxis(img, 0, 2) # h x w x 3 -> 3 x w x h
+        img = np.moveaxis(img, 1, 2) # 3 x w x h -> 3 x h x w
+        gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        grays.append(gray)
+    return grays
+
+def reshape_rescale(x, h, w):
+    n = x.shape[0]
+    x = np.reshape(x, (n, 3, h, w))
+    x = np.moveaxis(x, 1, 3)
+    x = 0.5*(x+1)
+    return x
+
+def filter_gm(alpha, mu, sigma, thresh):
+    keep = alpha > thresh
+    print(f'Removing {np.sum(1-keep)} gaussians')
+    new_alpha = alpha[keep]
+    new_alpha = new_alpha/np.sum(new_alpha)
+    new_mu = mu[keep]
+    new_sigma = sigma[keep]
+    return new_alpha, new_mu, new_sigma

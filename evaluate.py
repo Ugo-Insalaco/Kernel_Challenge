@@ -25,7 +25,9 @@ def compute_metrics(classifier, x_test, y_test, model_name):
                'f1': lambda yt, yp: metrics.f1_score(yt, yp, average=None), 
                'accuracy': lambda yt, yp: metrics.accuracy_score(yt, yp)
                }
-    
+    if y_test is None:
+        print('Evaluating on test set, skipping metrics')
+        return
     for metric in result_metrics:
         result_metrics[metric] = result_metrics[metric](y_test, y_pred)
     

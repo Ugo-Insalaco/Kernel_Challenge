@@ -4,9 +4,10 @@ from image_viewer import ImageViewer
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-def load_data(test_size = .2, use_fisher_vectors=False):
+def load_data(test_size = .2, use_fisher_vectors=False, augment_contrast = False):
     print("== Loading data ==")
-    np.random.seed(123456789)
+    rs = 123456789
+    np.random.seed(rs)
     data_path = 'data'
     if not use_fisher_vectors:
         x_train_path = os.path.join(data_path, 'Xtr.csv')
@@ -17,7 +18,10 @@ def load_data(test_size = .2, use_fisher_vectors=False):
         if test_size == 0:
             Xte, Yte = np.array(pd.read_csv(x_test_path,header=None,sep=',',usecols=range(3072))) , None
         else:
-            Xtr, Xte, Ytr, Yte = train_test_split(Xtr, Ytr, test_size=test_size)
+            Xtr, Xte, Ytr, Yte = train_test_split(Xtr, Ytr, test_size=test_size, random_state=rs)
+        if augment_contrast:
+            Xtr = Xtr / (np.min(Xtr, axis = 1, keepdims=True) - np.max(Xtr, axis = 1, keepdims=True))
+            Xte = Xte / (np.min(Xte, axis = 1, keepdims=True) - np.max(Xte, axis = 1, keepdims=True))
     else:
         x_train_path = os.path.join(data_path, 'Xtr_fisher.npy')
         y_train_path = os.path.join(data_path, 'Ytr.csv')
@@ -27,7 +31,7 @@ def load_data(test_size = .2, use_fisher_vectors=False):
         if test_size == 0:
             Xte, Yte = np.load(x_test_path), None
         else:
-            Xtr, Xte, Ytr, Yte = train_test_split(Xtr, Ytr, test_size=test_size)
+            Xtr, Xte, Ytr, Yte = train_test_split(Xtr, Ytr, test_size=test_size, random_state=rs)
     return Xtr, Ytr, Xte, Yte
 
 if __name__ == "__main__":

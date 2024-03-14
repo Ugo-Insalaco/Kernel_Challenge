@@ -139,6 +139,6 @@ if __name__ == '__main__':
 
     kernel_name = "Linear"
     kernel = kernels_dict[kernel_name](kernel_kwargs[kernel_name])
-    classifier = MultiClassSVC(10, 1e1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-2, cache_prefix=f"fisher_s{test_size}")
+    classifier = MultiClassSVC(10, 1, kernel_name, kernel_kwargs, 'ovo', epsilon = 1e-5, cache_prefix=f"fisher_s{test_size}")
     classifier.fit(x_train,y_train)
     classifier.save('models/multiclass_svc_fisher')

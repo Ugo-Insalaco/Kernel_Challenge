@@ -1,3 +1,7 @@
+# Computing the fisher vectors
+- Run the gm.py file that will compute the features from the images and generate a GMM fitted to the feature distribution
+- Run the fisher_kernels.py: this will compute the features for training and test dataset and use the GMM to compute the associated fisher vectors
+- Follow the training procedure with Linear kernel with the use_fisher_kernel parameter of the load_data function
 # Training
 For now the only model available is a MulticlassSVC using one versus rest (ovr) or one versus one (ovo) strategy.
 - Tuning the parameters: 

@@ -3,3 +3,4 @@ models
 kernels
 __pycache__/*
 .ipynb_checkpoints
+data_chall_kernel.ipynb

@@ -4,6 +4,8 @@ from cvxopt import matrix, solvers
 solvers.options['show_progress'] = False
 import numpy as np
 import cv2
+from skimage.feature import hog
+import tqdm
 
 def list_to_tri_index(k, n):
     # i < j
@@ -85,11 +87,31 @@ def compute_sifts(X):
     i=0
     for image in X:
         i+=1
-        sift = cv2.SIFT_create(nfeatures=256, contrastThreshold  = 1e-3, edgeThreshold = 20, sigma = 0.8)
+        sift = cv2.SIFT_create(nfeatures=64, contrastThreshold  = 1e-3, edgeThreshold = 10, sigma = 1)
         _, descriptors = sift.detectAndCompute(image, None) # T x d
         descriptors=descriptors/np.sum(descriptors, axis = 1, keepdims=True)
         sifts_features.append(descriptors)
     return sifts_features
+
+def compute_hogs(X):
+    # X: n x h x w x 3
+    hog_features = []
+    n = len(X)
+    channel_axis = None if len(X[0].shape) == 2 else -1
+    print('Computing hog features')
+    for k in tqdm.tqdm(range(n)):
+        fd = hog(X[k],
+            orientations=8,
+            pixels_per_cell=(8, 8), 
+            cells_per_block=(2, 2),
+            visualize=False, 
+            channel_axis=channel_axis,
+            feature_vector=True)
+        # h, w = fd.shape[0], fd.shape[1]
+        # fd = np.reshape(fd, (h * w, -1))
+        hog_features.append(fd[None, :])
+        # hog_features.append(fd)
+    return hog_features
 
 def get_n_grey_images(x, n=0):
     grays = []
@@ -109,7 +131,7 @@ def reshape_rescale(x, h, w):
     n = x.shape[0]
     x = np.reshape(x, (n, 3, h, w))
     x = np.moveaxis(x, 1, 3)
-    x = 0.5*(x+1)
+    # x = 0.5*(x+1)
     return x
 
 def filter_gm(alpha, mu, sigma, thresh):
